@@ -17,8 +17,10 @@
         bool IsValid(string frequentFlyerNumber, out bool isValid);
 
         //public string LicenseKey { get; }
-        public IServiceInformation ServiceInformation { get; }
+        IServiceInformation ServiceInformation { get; }
 
-        public ValidationMode ValidationMode { get; set; }
+        ValidationMode ValidationMode { get; set; }
+
+        event EventHandler validatorLookupPerformed;
     }
 }

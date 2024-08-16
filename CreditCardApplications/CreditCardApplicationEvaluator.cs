@@ -3,19 +3,35 @@
     public class CreditCardApplicationEvaluator
     {
         private readonly IFrequentFlyerNumberValidator _validator;
+        private readonly FraudLookup _fraudLookup;
 
         private const int AutoReferralMaxAge = 20;
         private const int HighIncomeThreshold = 100_000;
         private const int LowIncomeThreshold = 20_000;
 
+        public int ValidatorLookupCount { get; private set; }
+
         public CreditCardApplicationEvaluator(
-            IFrequentFlyerNumberValidator validator)
+            IFrequentFlyerNumberValidator validator,
+            FraudLookup fraudLookup = null)
         {
             _validator = validator ?? throw new ArgumentNullException(nameof(validator));
+            _validator.validatorLookupPerformed += ValidatorLookupPerformed;
+            _fraudLookup = fraudLookup;
+        }
+
+        private void ValidatorLookupPerformed(object sender, EventArgs e)
+        {
+            ValidatorLookupCount++;
         }
 
         public CreditCardApplicationDecision Evaluate(CreditCardApplication application)
         {
+            if (_fraudLookup != null && _fraudLookup.IsFraudRisk(application))
+            {
+                return CreditCardApplicationDecision.ReferredToHumanFraudRisk;
+            }
+
             if (application.GrossAnnualIncome >= HighIncomeThreshold)
             {
                 return CreditCardApplicationDecision.AutoAccepted;
@@ -28,7 +44,19 @@
 
             _validator.ValidationMode = application.Age >= 30 ? ValidationMode.Detailed : ValidationMode.Quick;
 
-            var isValidFrequentFlyerNumber = _validator.IsValid(application.FrequentFlyerNumber);
+            // var isValidFrequentFlyerNumber = _validator.IsValid(application.FrequentFlyerNumber);
+
+            bool isValidFrequentFlyerNumber;
+
+            try
+            {
+                isValidFrequentFlyerNumber = _validator.IsValid(application.FrequentFlyerNumber);
+            }
+            catch (Exception ex)
+            {
+                // log
+                return CreditCardApplicationDecision.ReferredToHuman;
+            }
 
             if (!isValidFrequentFlyerNumber)
             {

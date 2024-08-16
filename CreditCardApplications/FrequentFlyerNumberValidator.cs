@@ -12,6 +12,8 @@
             throw new NotImplementedException("Simulate this real dependency being hard to use");
         }
 
+        public event EventHandler validatorLookupPerformed;
+
         //public string LicenseKey
         //{
         //    get
